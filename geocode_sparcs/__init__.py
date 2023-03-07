@@ -1,50 +1,71 @@
 #!/usr/bin/env python3
 
-import sys, re, json, multiprocessing
+import sys, re, json, multiprocessing, argparse
 
 from tqdm import tqdm
 import requests
 
-us_state = 'NY'
+def cmdline(args):
+    p = argparse.ArgumentParser(
+        prog = 'geocode-sparcs',
+        description = "Geocode addresses from New York State's SPARCS data",
+        formatter_class = argparse.ArgumentDefaultsHelpFormatter)
+    p.add_argument('--pelias-host', metavar = 'HOST',
+        type = str, default = 'localhost:4000',
+        help = 'hostname of the Pelias server to query')
+    p.add_argument('--us-state', metavar = 'STATE',
+        type = str, default = 'NY',
+        help = 'two-letter abbreviation of the US state to query in')
+    p.add_argument('--workers', metavar = 'N',
+        type = int, default = 8,
+        help = 'number of parallel workers')
+    p.add_argument('--lonlats',
+        action = 'store_true',
+        help = 'return only lons and lats, and only for sufficiently precise matches')
+    main(p.parse_args(args), sys.stdin)
 
-pelias_host = 'localhost:4000'
+def main(options, file_object):
+    results = geocode(options, tuple(
+        (addr['line1'], addr['city'], addr['zip'])
+        for addr in map(json.loads, file_object)))
+    if options.lonlats:
+        for lon, lat in lonlats(results):
+            print(json.dumps(dict(lon = lon, lat = lat)))
+    else:
+        for result in results:
+            print(json.dumps(result))
 
-def main():
-    for result in lonlats(tuple(
-            (addr['line1'], addr['city'], addr['zip'])
-            for addr in map(json.loads, sys.stdin))):
-        print(json.dumps(dict(lon = result[0], lat = result[1])))
-
-def lonlats(addresses):
-    for result in geocode(addresses):
+def lonlats(geocode_results):
+    for result in geocode_results:
         if result and result['properties']['accuracy'] == 'point':
             assert result['geometry']['type'] == 'Point'
             yield result['geometry']['coordinates']
         else:
             yield (None, None)
 
-def geocode(addresses):
-    results = geocode_distinct([
+def geocode(options, addresses):
+    results = geocode_distinct(options, [
         (line1, city, zipcode)
         for (line1, city, zipcode) in sorted(set(addresses))
         if line1 and city and zipcode and zipcode != 'XXXXX'])
     for a in addresses:
         yield results.get(a)
 
-def geocode_distinct(addresses):
-    n_workers = 8
-      # On Belle, I don't see an improvement from more workers.
-
+def geocode_distinct(options, addresses):
     # Sort by ZIP, then by city. Perhaps this will get us some
     # kind of geographic cache locality.
     addresses = sorted(addresses, key = lambda x: (x[2], x[1]))
     print(f'Geocoding {len(addresses):,} addresses', file = sys.stderr)
-    with multiprocessing.Pool(n_workers) as pool:
+    with multiprocessing.Pool(options.workers, worker_setup, [options]) as pool:
         return dict(tqdm(
             zip(addresses, pool.imap(geocode1, addresses,
                 chunksize = (50 if len(addresses) > 1000 else 1))),
             total = len(addresses),
             unit_scale = True))
+
+def worker_setup(options):
+    global pelias_host, us_state
+    pelias_host, us_state = options.pelias_host, options.us_state
 
 def geocode1(addr):
     line1, city, zipcode = addr

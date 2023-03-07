@@ -1,2 +1,2 @@
 import sys, geocode_sparcs
-geocode_sparcs.main(*sys.argv[1:])
+geocode_sparcs.cmdline(sys.argv[1:])
