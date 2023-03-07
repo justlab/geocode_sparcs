@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import sys, re, json, multiprocessing
-from collections import namedtuple
 
 from tqdm import tqdm
 import requests
