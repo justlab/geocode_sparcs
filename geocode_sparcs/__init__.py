@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
-import sys, re, json, subprocess, multiprocessing
-from time import sleep
-from pathlib import Path
+import sys, re, json, multiprocessing
 from collections import namedtuple
 
 from tqdm import tqdm
@@ -11,7 +9,6 @@ import requests
 us_state = 'NY'
 
 pelias_host = 'localhost:4000'
-pelias_code_dir = Path.cwd() / 'code' / 'pelias'
 
 def main():
     for result in lonlats(tuple(
@@ -39,27 +36,16 @@ def geocode_distinct(addresses):
     n_workers = 8
       # On Belle, I don't see an improvement from more workers.
 
-    try:
-        subprocess.run(['pelias', 'compose', 'up'],
-            cwd = pelias_code_dir,
-            check = True)
-        print('Sleeping for Pelias', file = sys.stderr)
-        sleep(15)
-          # `pelias compose up` tends to exit before Pelias is
-          # entirely up, despite the console messages.
-        # Sort by ZIP, then by city. Perhaps this will get us some
-        # kind of geographic cache locality.
-        addresses = sorted(addresses, key = lambda x: (x[2], x[1]))
-        print(f'Geocoding {len(addresses):,} addresses', file = sys.stderr)
-        with multiprocessing.Pool(n_workers) as pool:
-            return dict(tqdm(
-                zip(addresses, pool.imap(geocode1, addresses,
-                    chunksize = (50 if len(addresses) > 1000 else 1))),
-                total = len(addresses),
-                unit_scale = True))
-    finally:
-        subprocess.run(['pelias', 'compose', 'down'],
-            cwd = pelias_code_dir)
+    # Sort by ZIP, then by city. Perhaps this will get us some
+    # kind of geographic cache locality.
+    addresses = sorted(addresses, key = lambda x: (x[2], x[1]))
+    print(f'Geocoding {len(addresses):,} addresses', file = sys.stderr)
+    with multiprocessing.Pool(n_workers) as pool:
+        return dict(tqdm(
+            zip(addresses, pool.imap(geocode1, addresses,
+                chunksize = (50 if len(addresses) > 1000 else 1))),
+            total = len(addresses),
+            unit_scale = True))
 
 def geocode1(addr):
     line1, city, zipcode = addr
