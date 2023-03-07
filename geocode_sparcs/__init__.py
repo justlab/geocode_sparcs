@@ -104,6 +104,3 @@ def pelias(endpoint, **kwargs):
     r = r.json()['features']
     assert len(r) <= 1
     return r[0] if r else None
-
-if __name__ == '__main__':
-    main(*sys.argv[1:])
