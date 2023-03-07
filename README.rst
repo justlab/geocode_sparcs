@@ -1,0 +1,11 @@
+``geocode_sparcs`` is a program for geocoding health data from New York State's `Statewide Planning and Research Cooperative System (SPARCS) <https://www.health.ny.gov/statistics/sparcs>`_ with a local installation of `Pelias <https://pelias.io>`_. It might also be useful as a Pelias wrapper for other regions and datasets, but for now at least, the focus is on SPARCS. The various kinds of fallback logic and string munging the program implements are specifically to improve performance on SPARCS.
+
+Install ``geocode_sparcs`` via `pip <https://pypi.org/project/pip/>`_ with the command ``pip install geocode_sparcs``. Python dependencies are automatically installed, but you'll need to set up Pelias with the instructions for `Pelias on Docker <https://github.com/pelias/docker>`_. You can use `the provided Pelias project directory <https://github.com/justlab/geocode_sparcs/blob/master/pelias>`_; just be sure to set ``DATA_DIR`` in ``.env`` to where you want to store all the data. Setting up Pelias with this configuration can take a few hours of downloading and processing.
+
+Once Pelias is up, you can geocode with the command ``python3 -m geocode_sparcs``, passing in addresses to geocode through standard input. Each address should be a `JSON <https://www.json.org>`_ object on its own line (per `JSON Lines <https://jsonlines.org>`_) with the keys ``line1``, ``city``, and ``zip``. The values should all be strings (even ``zip``) and are presumed to come from the columns ``PAT_ADDR_LINE1``, ``PAT_ADDR_CITY``, and ``PAT_ADDR_ZIP5`` in a ``SPARCS_LOCATION`` file; it is also assumed that you already checked that ``PAT_ADDR_ST`` is equal to ``NY`` for each case. Here's an example (with addresses that aren't actually from SPARCS, since that's protected health information)::
+
+    $ echo '{"line1": "405 East 42nd St", "city": "New York", "zip": "10017"}' >>input.txt
+    $ echo '{"line1": "351 Northern Blvd", "city": "Albany", "zip": "12204"}' >>input.txt
+    $ python3 -m geocode_sparcs <input.txt
+
+The output is also in JSON Lines. By default, the first ``features`` result from Pelias for each input is returned without further processing. See ``python3 -m geocode_sparcs --help`` for command-line options.
