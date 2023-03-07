@@ -5,11 +5,15 @@ import sys, re, json, multiprocessing, argparse
 from tqdm import tqdm
 import requests
 
+from geocode_sparcs._version import __version__
+
 def cmdline(args):
     p = argparse.ArgumentParser(
         prog = 'geocode-sparcs',
         description = "Geocode addresses from New York State's SPARCS data",
         formatter_class = argparse.ArgumentDefaultsHelpFormatter)
+    p.add_argument('-V', '--version',
+        action = 'version', version = '%(prog)s ' + __version__)
     p.add_argument('--pelias-host', metavar = 'HOST',
         type = str, default = 'localhost:4000',
         help = 'hostname of the Pelias server to query')
