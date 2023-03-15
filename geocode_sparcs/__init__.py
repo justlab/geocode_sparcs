@@ -48,10 +48,11 @@ def lonlats(geocode_results):
             yield (None, None)
 
 def geocode(options, addresses):
+    addresses = [tuple(x and x.lower() for x in a) for a in addresses]
     results = geocode_distinct(options, [
         (line1, city, zipcode)
         for (line1, city, zipcode) in sorted(set(addresses))
-        if line1 and city and zipcode and zipcode != 'XXXXX'])
+        if line1 and city and zipcode and zipcode != 'xxxxx'])
     for a in addresses:
         yield results.get(a)
 
