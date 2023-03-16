@@ -17,7 +17,8 @@ setuptools.setup(
         'Source Code': 'https://github.com/justlab/geocode_sparcs'},
     install_requires = [
         'tqdm >= 4.65.0',
-        'requests >= 2.28.2'],
+        'requests >= 2.28.2',
+        'inflect >= 6.0.2'],
     packages = setuptools.find_packages(),
     classifiers = [
         'Programming Language :: Python :: 3',

@@ -4,6 +4,7 @@ import sys, re, json, multiprocessing, argparse
 
 from tqdm import tqdm
 import requests
+import inflect
 
 from geocode_sparcs._version import __version__
 
@@ -85,6 +86,14 @@ def geocode1(addr):
     r = search(line1, city, us_state, zipcode)
     if ok(r): return r
 
+    # Try replacing spelled-out numbers.
+    new_line1 = numword_re.sub(string = line1, repl = lambda m:
+        str(numwords[re.sub('[ -]+', '', m.group(0))]))
+    if new_line1 != line1:
+        line1 = new_line1
+        r = search(line1, city, us_state, zipcode)
+    if ok(r): return r
+
     # Try to trim an apartment number.
     new_line1 = apt_re.sub('', line1)
     if new_line1 != line1:
@@ -121,6 +130,16 @@ apt_re = re.compile(flags = re.VERBOSE, pattern = r'''
         \d+ [ ]* -? [ ]* ([a-z] | fl | ph)? |
         ([a-z] | fl | ph) [ ]* -? [ ]* \d* )
     $''')
+
+inflect = inflect.engine()
+numwords = {
+    inflect.number_to_words(f(i)): i
+    for i in range(1, 100)
+    for f in (inflect.ordinal, str)}
+numword_re = re.compile(r'\b({})\b'.format('|'.join(
+    re.sub('[ -]', '[ -]*', o)
+    for o in numwords.keys())))
+number_words = {re.sub('[ -]', '', k): v for k, v in numwords.items()}
 
 def pelias(endpoint, **kwargs):
     r = requests.get(
