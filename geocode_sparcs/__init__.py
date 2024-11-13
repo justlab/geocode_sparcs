@@ -139,7 +139,7 @@ numwords = {
 numword_re = re.compile(r'\b({})\b'.format('|'.join(
     re.sub('[ -]', '[ -]*', o)
     for o in numwords.keys())))
-number_words = {re.sub('[ -]', '', k): v for k, v in numwords.items()}
+numwords = {re.sub('[ -]', '', k): v for k, v in numwords.items()}
 
 def pelias(endpoint, **kwargs):
     r = requests.get(
